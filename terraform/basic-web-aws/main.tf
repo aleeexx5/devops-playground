@@ -35,6 +35,6 @@ resource "aws_instance" "web" {
             systemctl start nginx
     EOF
     tags = {
-        Name = "servidor-web"
+        Name = "web-server"
     }
 }
