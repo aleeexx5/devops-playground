@@ -102,6 +102,31 @@ minikube service nginx-service --url
 ```
 
 ---
+### terraform/kubernetes/multi-app
+ 
+Deploys nginx and postgres on Minikube using the reusable `k8s-app` module. Demonstrates how modules avoid code repetition.
+ 
+**Resources:** 2x kubernetes_deployment, 2x kubernetes_service (via module)
+ 
+**Requirements:**
+- [Terraform](https://developer.hashicorp.com/terraform/install)
+- [Minikube](https://minikube.sigs.k8s.io/docs/start/)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/)
+```bash
+minikube start --driver=docker
+cd terraform/kubernetes/multi-app
+terraform init
+terraform apply
+minikube service nginx-service --url
+minikube service postgres-service --url
+```
+ 
+To connect to postgres from inside the cluster:
+```bash
+kubectl exec -it $(kubectl get pod -l app=postgres -o jsonpath='{.items[0].metadata.name}') -- psql -U postgres -d mydb
+```
+ 
+---
 
 ## Key concepts covered
 
