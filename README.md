@@ -13,7 +13,12 @@ devops-playground/
 │   │   ├── basic-web/          # nginx container with Docker provider
 │   │   └── multi-container/    # nginx + postgres with Docker networking
 │   └── kubernetes/
-│       └── basic-web/          # nginx Deployment + Service on Minikube
+│       ├── basic-web/          # nginx Deployment + Service on Minikube
+│       ├── modules/
+│       │   └── k8s-app/        # reusable module: Deployment + Service
+│       └── multi-app/          # nginx + postgres using the k8s-app module
+└── helm/
+    └── k8s-app/                # custom Helm chart with NodePort and env vars
 ```
 
 ## Projects
@@ -102,16 +107,26 @@ minikube service nginx-service --url
 ```
 
 ---
+
+### terraform/kubernetes/modules/k8s-app
+
+Reusable Terraform module that creates a Kubernetes Deployment and NodePort Service for any app. Accepts env vars for configuration.
+
+**Resources:** kubernetes_deployment, kubernetes_service
+
+---
+
 ### terraform/kubernetes/multi-app
- 
+
 Deploys nginx and postgres on Minikube using the reusable `k8s-app` module. Demonstrates how modules avoid code repetition.
- 
+
 **Resources:** 2x kubernetes_deployment, 2x kubernetes_service (via module)
- 
+
 **Requirements:**
 - [Terraform](https://developer.hashicorp.com/terraform/install)
 - [Minikube](https://minikube.sigs.k8s.io/docs/start/)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
+
 ```bash
 minikube start --driver=docker
 cd terraform/kubernetes/multi-app
@@ -120,12 +135,47 @@ terraform apply
 minikube service nginx-service --url
 minikube service postgres-service --url
 ```
- 
+
 To connect to postgres from inside the cluster:
 ```bash
 kubectl exec -it $(kubectl get pod -l app=postgres -o jsonpath='{.items[0].metadata.name}') -- psql -U postgres -d mydb
 ```
- 
+
+---
+
+## Helm
+
+### helm/k8s-app
+
+Custom Helm chart that deploys any app on Kubernetes with NodePort service and optional environment variables. Built from `helm create` and customized with templating.
+
+**Requirements:**
+- [Helm](https://helm.sh/docs/intro/install/)
+- [Minikube](https://minikube.sigs.k8s.io/docs/start/)
+
+```bash
+minikube start --driver=docker
+cd helm
+helm lint k8s-app                  # validate the chart
+helm template mi-app ./k8s-app     # preview generated manifests
+helm install mi-app ./k8s-app
+minikube service mi-app-k8s-app --url
+```
+
+To pass custom values:
+```bash
+helm install mi-app ./k8s-app --set replicaCount=3
+helm install mi-app ./k8s-app -f my-values.yaml
+```
+
+Upgrade and rollback:
+```bash
+helm upgrade mi-app ./k8s-app --set replicaCount=3
+helm rollback mi-app 1
+helm history mi-app
+helm uninstall mi-app
+```
+
 ---
 
 ## Key concepts covered
@@ -140,6 +190,13 @@ kubectl exec -it $(kubectl get pod -l app=postgres -o jsonpath='{.items[0].metad
 - **Docker networking** — connect containers via a shared network
 - **Kubernetes Deployments** — manage pods with replicas
 - **Kubernetes Services** — expose deployments (NodePort)
+- **Modules** — reusable infrastructure components
+- **dynamic blocks** — generate repeated blocks from a map or list
+- **map type** — key-value collection for env vars and tags
+- **Helm charts** — packaged Kubernetes applications
+- **Helm values** — parameterize charts via values.yaml
+- **Helm templates** — Go templating for Kubernetes manifests
+- **Helm releases** — versioned deployments with rollback support
 
 ## Useful commands
 
@@ -154,7 +211,18 @@ terraform validate   # validate syntax
 
 kubectl get pods     # list kubernetes pods
 kubectl get services # list kubernetes services
+kubectl get all      # list all kubernetes resources
 minikube service <name> --url  # get tunnel URL for a service
+
+helm install <name> <chart>    # install a chart
+helm upgrade <name> <chart>    # upgrade a release
+helm rollback <name> <rev>     # rollback to a revision
+helm uninstall <name>          # uninstall a release
+helm history <name>            # show release history
+helm lint <chart>              # validate a chart
+helm template <name> <chart>   # preview generated manifests
+helm repo add <name> <url>     # add a chart repository
+helm search repo <query>       # search for charts
 ```
 
 ## Notes
