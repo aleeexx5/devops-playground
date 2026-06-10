@@ -1,0 +1,10 @@
+schedule: "* * * * *"
+
+image:
+  repository: curlimages/curl
+  tag: latest
+  pullPolicy: IfNotPresent
+
+command: ["curl", "https://httpbin.org/get"]
+
+env: {}

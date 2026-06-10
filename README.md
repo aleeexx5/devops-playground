@@ -18,7 +18,9 @@ devops-playground/
 │       │   └── k8s-app/        # reusable module: Deployment + Service
 │       └── multi-app/          # nginx + postgres using the k8s-app module
 └── helm/
-    └── k8s-app/                # custom Helm chart with NodePort and env vars
+    └── charts/
+        ├── k8s-app/                # custom Helm chart with NodePort and env vars
+        └── cronjob/                # custom Helm chart for Kubernetes CronJobs
 ```
 
 ## Projects
@@ -145,7 +147,7 @@ kubectl exec -it $(kubectl get pod -l app=postgres -o jsonpath='{.items[0].metad
 
 ## Helm
 
-### helm/k8s-app
+### helm/charts/k8s-app
 
 Custom Helm chart that deploys any app on Kubernetes with NodePort service and optional environment variables. Built from `helm create` and customized with templating.
 
@@ -155,9 +157,9 @@ Custom Helm chart that deploys any app on Kubernetes with NodePort service and o
 
 ```bash
 minikube start --driver=docker
-cd helm
-helm lint k8s-app                  # validate the chart
-helm template mi-app ./k8s-app     # preview generated manifests
+cd helm/charts
+helm lint k8s-app
+helm template mi-app ./k8s-app
 helm install mi-app ./k8s-app
 minikube service mi-app-k8s-app --url
 ```
@@ -174,6 +176,34 @@ helm upgrade mi-app ./k8s-app --set replicaCount=3
 helm rollback mi-app 1
 helm history mi-app
 helm uninstall mi-app
+```
+
+---
+
+### helm/charts/cronjob
+
+Custom Helm chart for Kubernetes CronJobs. Runs a curl command on a schedule with configurable image, command, and environment variables.
+
+**Requirements:**
+- [Helm](https://helm.sh/docs/intro/install/)
+- [Minikube](https://minikube.sigs.k8s.io/docs/start/)
+
+```bash
+minikube start --driver=docker
+cd helm/charts
+helm lint cronjob
+helm template mi-cronjob ./cronjob
+helm install mi-cronjob ./cronjob
+kubectl get cronjobs
+kubectl get jobs
+```
+
+To customize:
+```bash
+helm install mi-cronjob ./cronjob \
+  --set schedule="0 * * * *" \
+  --set image.repository=curlimages/curl \
+  --set "command={curl,https://httpbin.org/get}"
 ```
 
 ---
@@ -197,6 +227,7 @@ helm uninstall mi-app
 - **Helm values** — parameterize charts via values.yaml
 - **Helm templates** — Go templating for Kubernetes manifests
 - **Helm releases** — versioned deployments with rollback support
+- **Kubernetes CronJobs** — scheduled tasks that create pods on a cron schedule
 
 ## Useful commands
 
@@ -212,6 +243,8 @@ terraform validate   # validate syntax
 kubectl get pods     # list kubernetes pods
 kubectl get services # list kubernetes services
 kubectl get all      # list all kubernetes resources
+kubectl get cronjobs # list kubernetes cronjobs
+kubectl get jobs     # list kubernetes jobs
 minikube service <name> --url  # get tunnel URL for a service
 
 helm install <name> <chart>    # install a chart
