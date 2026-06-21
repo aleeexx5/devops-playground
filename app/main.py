@@ -4,7 +4,7 @@ app = FastAPI()
 
 @app.get("/")
 def describe():
-    return { "status": "ok", "app": "devops-playground" }
+    return { "status": "ok", "app": "devops-playground", "version": "2.0.0" }
 
 @app.get("/health")
 def health():
