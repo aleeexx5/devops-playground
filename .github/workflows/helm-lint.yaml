@@ -1,0 +1,20 @@
+name: test-pipeline
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  helm-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Lint k8s-app chart
+        run: helm lint ./helm/charts/k8s-app
+      - name: Helm template k8s-app
+        run: helm template ./helm/charts/k8s-app
+      - name: Lint cronjob chart
+        run: helm lint ./helm/charts/cronjob
+      - name: Helm template cronjob
+        run: helm template ./helm/charts/cronjob

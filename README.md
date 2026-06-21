@@ -192,15 +192,15 @@ Custom Helm chart for Kubernetes CronJobs. Runs a curl command on a schedule wit
 minikube start --driver=docker
 cd helm/charts
 helm lint cronjob
-helm template mi-cronjob ./cronjob
-helm install mi-cronjob ./cronjob
+helm template my-cronjob ./cronjob
+helm install my-cronjob ./cronjob
 kubectl get cronjobs
 kubectl get jobs
 ```
 
 To customize:
 ```bash
-helm install mi-cronjob ./cronjob \
+helm install my-cronjob ./cronjob \
   --set schedule="0 * * * *" \
   --set image.repository=curlimages/curl \
   --set "command={curl,https://httpbin.org/get}"
