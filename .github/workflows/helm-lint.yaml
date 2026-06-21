@@ -3,6 +3,8 @@ name: test-pipeline
 on:
   push:
     branches: [main]
+    paths:
+      - 'helm/charts/**'
 
 jobs:
   helm-validation:
