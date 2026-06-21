@@ -7,28 +7,28 @@ Personal learning repo for DevOps tools and concepts. Each project is self-conta
 ```
 devops-playground/
 ├── app/                              # FastAPI app with Dockerfile
+├── argocd/
+│   └── app.yaml                      # ArgoCD Application manifest
 ├── .github/
 │   └── workflows/
 │       ├── helm-lint.yaml            # CI: lint and validate Helm charts
-│       └── build-and-push.yaml       # CI: build and push Docker image to ghcr.io
+│       └── build-and-push.yaml       # CI: build, push image and update values
 ├── terraform/
 │   ├── aws/
-│   │   └── basic-web/          # EC2 + VPC + Security Group with LocalStack
+│   │   └── basic-web/               # EC2 + VPC + Security Group with LocalStack
 │   ├── docker/
-│   │   ├── basic-web/          # nginx container with Docker provider
-│   │   └── multi-container/    # nginx + postgres with Docker networking
+│   │   ├── basic-web/               # nginx container with Docker provider
+│   │   └── multi-container/         # nginx + postgres with Docker networking
 │   └── kubernetes/
-│       ├── basic-web/          # nginx Deployment + Service on Minikube
+│       ├── basic-web/               # nginx Deployment + Service on Minikube
 │       ├── modules/
-│       │   └── k8s-app/        # reusable module: Deployment + Service
-│       └── multi-app/          # nginx + postgres using the k8s-app module
+│       │   └── k8s-app/             # reusable module: Deployment + Service
+│       └── multi-app/               # nginx + postgres using the k8s-app module
 └── helm/
     └── charts/
-        ├── k8s-app/                # custom Helm chart with NodePort and env vars
-        └── cronjob/                # custom Helm chart for Kubernetes CronJobs
-└── .github/
-    └── workflows/
-        └── helm-lint.yaml          # CI pipeline: lint and validate Helm charts
+        ├── k8s-app/                 # custom Helm chart with NodePort and env vars
+        │   └── values-fastapi.yaml  # values for FastAPI app (managed by CI)
+        └── cronjob/                 # custom Helm chart for Kubernetes CronJobs
 ```
 
 ## Projects
@@ -260,19 +260,59 @@ Validates Helm charts on every push to `main` that modifies files under `helm/ch
 
 ### .github/workflows/build-and-push.yaml
 
-Builds the FastAPI Docker image and pushes it to GitHub Container Registry on every push to `main` that modifies files under `app/`.
+Builds the FastAPI Docker image, pushes it to GitHub Container Registry, and automatically updates `values-fastapi.yaml` with the new image tag. ArgoCD detects the change and deploys automatically.
 
 **Triggers:** push to `main` with changes in `app/**`
 
 **Steps:**
 1. Checkout code
 2. Login to ghcr.io with `GITHUB_TOKEN`
-3. Build and push image with two tags: `latest` and the commit SHA
+3. Build and push image with tags: `latest` and commit SHA
+4. Update `helm/charts/k8s-app/values-fastapi.yaml` with the new SHA
+5. Push the updated values file to Git
 
 Image available at:
 ```
 ghcr.io/aleeexx5/devops-playground:latest
 ghcr.io/aleeexx5/devops-playground:<commit-sha>
+```
+
+---
+
+## GitOps / ArgoCD
+
+### argocd/app.yaml
+
+ArgoCD Application that monitors the `helm/charts/k8s-app` path in this repo and automatically deploys changes to the Minikube cluster. Uses `values-fastapi.yaml` for configuration.
+
+**Full CI/CD flow:**
+```
+push to app/
+  → GitHub Actions builds image with tag=SHA
+  → pushes image to ghcr.io
+  → updates values-fastapi.yaml with new SHA
+  → ArgoCD detects change in values-fastapi.yaml
+  → ArgoCD deploys new image automatically
+```
+
+**Requirements:**
+- [Minikube](https://minikube.sigs.k8s.io/docs/start/)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/)
+
+```bash
+# Install ArgoCD
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+# Access dashboard
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+# open https://localhost:8080 (user: admin)
+
+# Get initial password
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+
+# Apply the Application
+kubectl apply -f argocd/app.yaml
 ```
 
 ---
@@ -302,7 +342,9 @@ ghcr.io/aleeexx5/devops-playground:<commit-sha>
 - **jobs and steps** — units of work in a pipeline
 - **ghcr.io** — GitHub Container Registry for Docker images
 - **FastAPI** — Python framework for building APIs
-- **Docker multi-stage** — optimized image builds
+- **ArgoCD** — GitOps continuous delivery for Kubernetes
+- **GitOps** — Git as the single source of truth for deployments
+- **drift detection** — ArgoCD detects and corrects differences between Git and cluster
 
 ## Useful commands
 
@@ -331,6 +373,11 @@ helm lint <chart>              # validate a chart
 helm template <name> <chart>   # preview generated manifests
 helm repo add <name> <url>     # add a chart repository
 helm search repo <query>       # search for charts
+
+argocd app list                # list ArgoCD applications
+argocd app sync <name>         # force sync an application
+argocd app history <name>      # show deployment history
+argocd app rollback <name>     # rollback to previous version
 ```
 
 ## Notes
@@ -339,3 +386,5 @@ helm search repo <query>       # search for charts
 - `.terraform/` directories are ignored — regenerated with `terraform init`
 - Sensitive variables (e.g. `postgres_password`) use `TF_VAR_` environment variables
 - Docker Desktop on Linux requires the `desktop-linux` context
+- ArgoCD syncs every 3 minutes by default — use `argocd app sync` to force immediate sync
+- Image tags in `values-fastapi.yaml` are managed automatically by the CI pipeline — do not edit manually
