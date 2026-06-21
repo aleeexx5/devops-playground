@@ -1,4 +1,4 @@
-name: test-pipeline
+name: build-and-push-api
 
 on:
   push:
@@ -9,6 +9,9 @@ on:
 jobs:
   docker-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

@@ -1,4 +1,4 @@
-name: test-pipeline
+name: helm-validation
 
 on:
   push:
