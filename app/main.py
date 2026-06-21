@@ -12,4 +12,4 @@ def health():
 
 @app.get("/info")
 def info():
-    return { "version": "1.0.0", "environment": "playground" }
+    return { "environment": "playground" }
