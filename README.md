@@ -6,6 +6,11 @@ Personal learning repo for DevOps tools and concepts. Each project is self-conta
 
 ```
 devops-playground/
+├── app/                              # FastAPI app with Dockerfile
+├── .github/
+│   └── workflows/
+│       ├── helm-lint.yaml            # CI: lint and validate Helm charts
+│       └── build-and-push.yaml       # CI: build and push Docker image to ghcr.io
 ├── terraform/
 │   ├── aws/
 │   │   └── basic-web/          # EC2 + VPC + Security Group with LocalStack
@@ -27,6 +32,38 @@ devops-playground/
 ```
 
 ## Projects
+
+### app/
+
+FastAPI application with three endpoints. Containerized with Docker and published to GitHub Container Registry (ghcr.io) via GitHub Actions.
+
+**Endpoints:**
+- `GET /` — app status
+- `GET /health` — health check
+- `GET /docs` — auto-generated API documentation (Swagger UI)
+
+**Requirements:**
+- [Docker](https://www.docker.com/products/docker-desktop/)
+- [Python 3.12](https://www.python.org/downloads/) (for local development)
+
+Run locally:
+```bash
+cd app
+pip install -r requirements.txt
+uvicorn main:app --reload
+# open http://localhost:8000
+```
+
+Run with Docker:
+```bash
+docker build -t devops-playground:local .
+docker run -p 8000:8000 devops-playground:local
+# or pull from registry:
+docker pull ghcr.io/aleeexx5/devops-playground:latest
+docker run -p 8000:8000 ghcr.io/aleeexx5/devops-playground:latest
+```
+
+---
 
 ### terraform/aws/basic-web
 
@@ -215,14 +252,28 @@ helm install my-cronjob ./cronjob \
 
 ### .github/workflows/helm-lint.yaml
 
-GitHub Actions workflow that validates Helm charts on every push to `main` that modifies files under `helm/charts/`. Runs `helm lint` and `helm template` on both charts.
+Validates Helm charts on every push to `main` that modifies files under `helm/charts/`. Runs `helm lint` and `helm template` on both charts.
 
 **Triggers:** push to `main` with changes in `helm/charts/**`
 
+---
+
+### .github/workflows/build-and-push.yaml
+
+Builds the FastAPI Docker image and pushes it to GitHub Container Registry on every push to `main` that modifies files under `app/`.
+
+**Triggers:** push to `main` with changes in `app/**`
+
 **Steps:**
 1. Checkout code
-2. Lint and template `k8s-app` chart
-3. Lint and template `cronjob` chart
+2. Login to ghcr.io with `GITHUB_TOKEN`
+3. Build and push image with two tags: `latest` and the commit SHA
+
+Image available at:
+```
+ghcr.io/aleeexx5/devops-playground:latest
+ghcr.io/aleeexx5/devops-playground:<commit-sha>
+```
 
 ---
 
@@ -246,6 +297,12 @@ GitHub Actions workflow that validates Helm charts on every push to `main` that 
 - **Helm templates** — Go templating for Kubernetes manifests
 - **Helm releases** — versioned deployments with rollback support
 - **Kubernetes CronJobs** — scheduled tasks that create pods on a cron schedule
+- **GitHub Actions workflows** — CI/CD pipelines triggered by Git events
+- **workflow triggers** — `on.push.branches` and `on.push.paths` filters
+- **jobs and steps** — units of work in a pipeline
+- **ghcr.io** — GitHub Container Registry for Docker images
+- **FastAPI** — Python framework for building APIs
+- **Docker multi-stage** — optimized image builds
 
 ## Useful commands
 
