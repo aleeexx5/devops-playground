@@ -21,6 +21,9 @@ devops-playground/
     └── charts/
         ├── k8s-app/                # custom Helm chart with NodePort and env vars
         └── cronjob/                # custom Helm chart for Kubernetes CronJobs
+└── .github/
+    └── workflows/
+        └── helm-lint.yaml          # CI pipeline: lint and validate Helm charts
 ```
 
 ## Projects
@@ -205,6 +208,21 @@ helm install my-cronjob ./cronjob \
   --set image.repository=curlimages/curl \
   --set "command={curl,https://httpbin.org/get}"
 ```
+
+---
+
+## CI/CD
+
+### .github/workflows/helm-lint.yaml
+
+GitHub Actions workflow that validates Helm charts on every push to `main` that modifies files under `helm/charts/`. Runs `helm lint` and `helm template` on both charts.
+
+**Triggers:** push to `main` with changes in `helm/charts/**`
+
+**Steps:**
+1. Checkout code
+2. Lint and template `k8s-app` chart
+3. Lint and template `cronjob` chart
 
 ---
 
