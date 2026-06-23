@@ -1,6 +1,6 @@
 image:
   repository: ghcr.io/aleeexx5/devops-playground
-  tag: 099b2dc9998d0b091d94175680897d5f081af98a
+  tag: a16d075b019ebeb5972675e20600def38ff3e4eb
 service:
   port: 8000
   nodePort: 30080
